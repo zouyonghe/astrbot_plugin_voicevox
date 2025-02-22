@@ -255,6 +255,7 @@ class VoicevoxTTSGenerator(Star):
                 return
             else:
                 plain_text += comp.toString()
+                logger.error(f"plain_text: {plain_text}")
 
         # 验证是否为日语文本
         if not self._is_japanese(plain_text):
