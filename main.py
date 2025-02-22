@@ -247,17 +247,14 @@ class VoicevoxTTSGenerator(Star):
     @on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
         # 获取事件结果
-        result = event.get_result()
         plain_text = ""
-        chain = result.chain
 
         # 遍历组件
-        for comp in chain:
-            if isinstance(comp, Image):  # 检测是否有 Image 组件
+        for comp in event.get_messages():
+            if not isinstance(comp, Plain):  # 检测是否包含文字外其他内容
                 return
-            if isinstance(comp, Plain):
-                # cleaned_text = re.sub(r'[()《》#%^&*+-_{}]', '', comp.text)  # 移除特殊字符
-                plain_text += comp
+            else:
+                plain_text += comp.toString()
 
         # 验证是否为日语文本
         if not self._is_japanese(plain_text):
@@ -276,7 +273,7 @@ class VoicevoxTTSGenerator(Star):
                 temp_audio_path = temp_audio.name
 
             # 将生成的音频文件添加到事件链
-            result.chain = [Record(file=temp_audio_path)]
+            event.get_result().chain = [Record(file=temp_audio_path)]
             os.remove(temp_audio_path)  # 清理临时文件
         except Exception as e:
             logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
