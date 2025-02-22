@@ -265,17 +265,14 @@ class VoicevoxTTSGenerator(Star):
                 return
             else:
                 plain_text += comp.toString()
-                logger.error(f"plain_text: {plain_text}")
 
         # 验证是否为日语文本
         if not self._is_japanese(plain_text):
-            logger.error("Not japanese!")
             return
 
         try:
             # 获取默认的 speaker_id
             speaker_id = await self._get_speaker_id()
-            logger.error(f"speaker_id: {speaker_id}")
 
             # 调用 API 生成语音
             audio_data = await self._call_voicevox_api(text=plain_text, speaker=speaker_id)
