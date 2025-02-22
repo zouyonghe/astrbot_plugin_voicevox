@@ -48,7 +48,6 @@ class VoicevoxTTSGenerator(Star):
         except Exception as e:
             logger.error(f"保存插件配置失败: {e}")
 
-
     def _is_japanese(self, text):
         try:
             # 使用 pycld2 检测语言
