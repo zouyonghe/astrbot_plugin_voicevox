@@ -120,6 +120,7 @@ class VoicevoxTTSGenerator(Star):
         """启用 VOICEVOX"""
         try:
             self.config["enable_voicevox"] = True  # 设置为启用
+            self.context.get_config().save_config()
             yield event.plain_result("✅ VOICEVOX 已启用！")
         except Exception as e:
             logger.error(f"启用 VOICEVOX 时出错: {e}")
@@ -130,6 +131,7 @@ class VoicevoxTTSGenerator(Star):
         """禁用 VOICEVOX"""
         try:
             self.config["enable_voicevox"] = False  # 设置为禁用
+            self.context.get_config().save_config()
             yield event.plain_result("✅ VOICEVOX 已禁用！")
         except Exception as e:
             logger.error(f"禁用 VOICEVOX 时出错: {e}")
