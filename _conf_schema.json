@@ -1,0 +1,14 @@
+{
+    "voicevox_url": {
+        "type": "string",
+        "description": "VOICEVOX Engine API地址",
+        "default": "127.0.0.1:50021",
+        "hint": "格式：IP或域名加端口号，例如：127.0.0.1:50021 或 example.com:50021"
+    },
+    "default_speaker": {
+        "type": "int",
+        "description": "默认语音角色",
+        "default": 1,
+        "hint": "讲话者索引，使用 /voicevox speakers 获得所有可用讲话者"
+    }
+}

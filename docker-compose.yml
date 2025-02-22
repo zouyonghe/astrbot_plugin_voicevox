@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  voicevox_engine:
+    image: voicevox/voicevox_engine:nvidia-latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - '0.0.0.0:50021:50021'
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    runtime: nvidia
+    restart: unless-stopped
