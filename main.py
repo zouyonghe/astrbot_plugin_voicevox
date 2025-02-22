@@ -286,6 +286,6 @@ class VoicevoxTTSGenerator(Star):
 
             # 将生成的音频文件添加到事件链
             result.chain = [Record(file=temp_audio_path)]
-            os.remove(temp_audio_path)  # 清理临时文件
+            # os.remove(temp_audio_path)  # 清理临时文件
         except Exception as e:
             logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
