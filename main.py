@@ -330,7 +330,8 @@ class VoicevoxTTSGenerator(Star):
 
         Args:
         """
-        self.enable_voicevox(event)
+        async for result in self.enable_voicevox(event):
+            yield result
         logger.info("已启用 Voicevox TTS")
         
     @llm_tool("disable_voicevox_tts")
@@ -339,5 +340,6 @@ class VoicevoxTTSGenerator(Star):
 
         Args:
         """
-        self.disable_voicevox(event)
+        async for result in self.disable_voicevox(event):
+            yield result
         logger.info("已禁用 Voicevox TTS")
