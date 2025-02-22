@@ -1,9 +1,10 @@
+import re
 import tempfile
 
 import aiohttp
 
 from astrbot.api.all import *
-
+from astrbot.api.event.filter import *
 
 @register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.0")
 class VoicevoxTTSGenerator(Star):
@@ -27,6 +28,23 @@ class VoicevoxTTSGenerator(Star):
             self.session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(self.config.get("session_timeout_time", 120))
             )
+
+    def _is_japanese(self, text):
+        japanese_pattern = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')  # 假名范围
+        japanese_kanji_pattern = re.compile(r'[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]')  # 日语汉字范围（含扩展A+B+C等）
+        chinese_pattern = re.compile(r'^[\u4E00-\u9FFF，。！？、；：]*$')  # 纯中文（允许全角标点）
+        # 是否包含假名
+        contains_kana = japanese_pattern.search(text)
+        # 是否包含日语汉字
+        contains_japanese_kanji = japanese_kanji_pattern.search(text)
+        # 是否为纯中文
+        is_pure_chinese = chinese_pattern.fullmatch(text)
+
+        # 条件：包含假名，或包含日语汉字但文本不只是纯中文
+        if contains_kana or (contains_japanese_kanji and not is_pure_chinese):
+            return True
+
+        return False
 
     async def _call_voicevox_api(self, text: str, speaker: int) -> bytes:
         """调用 VOICEVOX Engine API，生成语音"""
@@ -70,6 +88,28 @@ class VoicevoxTTSGenerator(Star):
         except aiohttp.ClientError as e:
             raise ConnectionError(f"连接失败: {str(e)}")
 
+    async def _get_speaker_id(self):
+        """获取对应的 speaker_id"""
+        # 检查是否已设置默认音声和样式
+        voice = self.config.get("default_voice")  # 配置中保存的音声名称
+        style = self.config.get("default_style")  # 配置中保存的样式名称
+        if not voice or not style:
+            raise ValueError(f"未设置音声或风格")
+
+        speakers = await self._list_speakers()
+
+        # Find speaker by voice name
+        speaker = next((s for s in speakers if s["name"] == voice), None)
+        if not speaker:
+            raise ValueError(f"找不到音声 {voice}")
+
+        # Find style by style name
+        style_obj = next((s for s in speaker["styles"] if s["name"] == style), None)
+        if not style_obj:
+            raise ValueError(f"音声 {voice} 下找不到风格 {style}")
+
+        return style_obj["id"]
+
     @command_group("voicevox")
     def voicevox(self):
         pass
@@ -86,27 +126,13 @@ class VoicevoxTTSGenerator(Star):
                 yield event.plain_result("❌ 生成语音失败：文本内容不能为空！")
                 return
 
-            # 检查是否已设置默认音声和样式
-            voice = self.config.get("default_voice")  # 配置中保存的音声名称
-            style = self.config.get("default_style")  # 配置中保存的样式名称
-            if not voice or not style:
-                yield event.plain_result("❌ 生成语音失败：请先设置音声和样式！")
+            # 验证是否为日语文本
+            if not self._is_japanese(text):
+                yield event.plain_result("⚠️ VOICEVOX 只支持日语文本转语音，请提供日语文本。")
                 return
 
-            # 获取音声和样式的 ID
-            speakers = await self._list_speakers()
-            speaker = next((s for s in speakers if s["name"] == voice), None)
-            if not speaker:
-                yield event.plain_result(f"❌ 找不到音声 {voice}，请检查设置！")
-                return
-
-            # 根据音声获取 style 对象，并提取其 ID（作为 speaker ID）
-            style_obj = next((s for s in speaker["styles"] if s["name"] == style), None)
-            if not style_obj:
-                yield event.plain_result(f"❌ 音声 {voice} 下找不到样式 {style}，请检查设置！")
-                return
-
-            speaker_id = style_obj["id"]  # 获取风格对应的 speaker ID
+            # 获取 speaker ID
+            speaker_id = await self._get_speaker_id()
 
             # 调用 API 生成语音
             audio_data = await self._call_voicevox_api(text, speaker_id)
@@ -218,3 +244,39 @@ class VoicevoxTTSGenerator(Star):
             logger.error(f"设置风格失败: {e}")
             yield event.plain_result("❌ 设置风格失败，请检查日志")
 
+    @on_decorating_result()
+    async def on_decorating_result(self, event: AstrMessageEvent):
+        # 获取事件结果
+        result = event.get_result()
+        plain_text = ""
+        chain = result.chain
+
+        # 遍历组件
+        for comp in chain:
+            if isinstance(comp, Image):  # 检测是否有 Image 组件
+                return
+            if isinstance(comp, Plain):
+                # cleaned_text = re.sub(r'[()《》#%^&*+-_{}]', '', comp.text)  # 移除特殊字符
+                plain_text += comp
+
+        # 验证是否为日语文本
+        if not self._is_japanese(plain_text):
+            return
+
+        try:
+            # 获取默认的 speaker_id
+            speaker_id = await self._get_speaker_id()
+
+            # 调用 API 生成语音
+            audio_data = await self._call_voicevox_api(text=plain_text, speaker=speaker_id)
+
+            # 使用临时文件存储音频
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+                temp_audio.write(audio_data)
+                temp_audio_path = temp_audio.name
+
+            # 将生成的音频文件添加到事件链
+            result.chain = [Record(file=temp_audio_path)]
+            os.remove(temp_audio_path)  # 清理临时文件
+        except Exception as e:
+            logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
