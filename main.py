@@ -286,7 +286,7 @@ class VoicevoxTTSGenerator(Star):
                 temp_audio_path = temp_audio.name
 
             # 将生成的音频文件添加到事件链
-            result.chain = [Record(file=temp_audio_path)]
+            result.chain.append(Record(file=temp_audio_path))
 
             # 异步延迟删除任务
             async def delayed_file_removal(path, delay_seconds=10):
