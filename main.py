@@ -45,12 +45,12 @@ class VoicevoxTTSGenerator(Star):
                     raise ConnectionError(f"audio_query 请求失败: ({resp_query.status}) {error}")
                 audio_query = await resp_query.json()  # 获取 audio_query 接口的返回值
 
-            # 注入 speaker 字段到 audio_query 的 JSON 数据中
-            audio_query["speaker"] = speaker
-
             # 第二步：调用 synthesis 接口，生成音频
             url_synthesis = f"{voicevox_url}/synthesis"
-            async with self.session.post(url_synthesis, json=audio_query) as resp_synthesis:
+            params = {
+                "speaker": speaker  # 提供风格ID
+            }
+            async with self.session.post(url_synthesis, json=audio_query, params=params) as resp_synthesis:
                 if resp_synthesis.status != 200:
                     error = await resp_synthesis.text()
                     raise ConnectionError(f"synthesis 请求失败: ({resp_synthesis.status}) {error}")
