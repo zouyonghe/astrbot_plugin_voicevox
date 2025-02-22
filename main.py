@@ -246,11 +246,20 @@ class VoicevoxTTSGenerator(Star):
 
     @on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
+        if not event.get_sender_id() != event.get_self_id():
+            return
+
+        result = event.get_result()
+
+        # 判断为 LLM 返回结果
+        if not result or not result.is_llm_result():
+            return
+
         # 获取事件结果
         plain_text = ""
 
         # 遍历组件
-        for comp in event.get_result().chain:
+        for comp in result.chain:
             if not isinstance(comp, Plain):  # 检测是否包含文字外其他内容
                 return
             else:
@@ -265,6 +274,7 @@ class VoicevoxTTSGenerator(Star):
         try:
             # 获取默认的 speaker_id
             speaker_id = await self._get_speaker_id()
+            logger.error(f"speaker_id: {speaker_id}")
 
             # 调用 API 生成语音
             audio_data = await self._call_voicevox_api(text=plain_text, speaker=speaker_id)
