@@ -259,6 +259,7 @@ class VoicevoxTTSGenerator(Star):
 
         # 验证是否为日语文本
         if not self._is_japanese(plain_text):
+            logger.error("Not japanese!")
             return
 
         try:
