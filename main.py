@@ -323,3 +323,21 @@ class VoicevoxTTSGenerator(Star):
 
         except Exception as e:
             logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
+            
+    @llm_tool("enable_voicevox_tts")
+    async def enable_voicevox_tts(self, event: AstrMessageEvent):
+        """Enable Voicevox Japanese text-to-speech
+
+        Args:
+        """
+        self.enable_voicevox(event)
+        logger.info("已启用 Voicevox TTS")
+        
+    @llm_tool("disable_voicevox_tts")
+    async def disable_voicevox_tts(self, event: AstrMessageEvent):
+        """Disable Voicevox Japanese text-to-speech
+
+        Args:
+        """
+        self.disable_voicevox(event)
+        logger.info("已禁用 Voicevox TTS")
