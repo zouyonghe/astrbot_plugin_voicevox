@@ -42,7 +42,7 @@ class VoicevoxTTSGenerator(Star):
             logger.error("插件配置文件路径不存在，保存失败。")
             return
         try:
-            with open("w", encoding="utf-8") as config_file:
+            with open(file_path, "w", encoding="utf-8") as config_file:
                 json.dump(self.config, config_file, indent=2, ensure_ascii=False)
             logger.info(f"插件配置已保存到文件: {file_path}")
         except Exception as e:
