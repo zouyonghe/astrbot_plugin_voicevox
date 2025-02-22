@@ -1,11 +1,12 @@
 import asyncio
-import re
 import tempfile
 
 import aiohttp
+import pycld2 as cld2
 
 from astrbot.api.all import *
 from astrbot.api.event.filter import *
+
 
 @register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.0")
 class VoicevoxTTSGenerator(Star):
@@ -31,27 +32,20 @@ class VoicevoxTTSGenerator(Star):
             )
 
     def _is_japanese(self, text):
-        japanese_pattern = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')  # 假名范围
-        japanese_kanji_pattern = re.compile(r'[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]')  # 日语汉字范围（含扩展A+B+C等）
-        chinese_pattern = re.compile(r'[\u4E00-\u9FFF]')  # 中文汉字范围
-
-        # 是否包含假名
-        contains_kana = japanese_pattern.search(text)
-        # 是否包含日语汉字
-        contains_japanese_kanji = japanese_kanji_pattern.search(text)
-        # 是否包含中文汉字
-        contains_chinese = chinese_pattern.search(text)
-
-        # 如果包含中文，则直接返回 False（不是日语）
-        if contains_chinese:
+        try:
+            # 使用 pycld2 检测语言
+            is_reliable, _, detected_languages = cld2.detect(text)
+            if is_reliable:
+                # 遍历检测到的语言信息
+                for lang in detected_languages:
+                    language_code = lang[1]
+                    if language_code == 'ja':
+                        return True
             return False
-
-        # 如果包含假名或日语汉字，则识别为日语
-        if contains_kana or contains_japanese_kanji:
-            return True
-
-        # 默认不是日语
-        return False
+        except Exception as e:
+            # 处理检测过程中可能出现的异常
+            print(f"Language detection error: {e}")
+            return False
 
     async def _call_voicevox_api(self, text: str, speaker: int) -> bytes:
         """调用 VOICEVOX Engine API，生成语音"""
