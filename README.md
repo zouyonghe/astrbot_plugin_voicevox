@@ -13,7 +13,28 @@
 
 ### 安装
 
-确保已安装 VOICEVOX Engine，并将其配置到插件设置中。
+对于Linux系统，可以使用 docker-compose 部署 VOICEVOX engine。
+
+首先下载项目附带的 `docker-compose.yml` 文件。
+
+1. **安装 NVIDIA Container Toolkit**  
+   根据发行版安装自行安装如下软件：
+   ```bash
+   nvidia-container-toolkit
+   ```
+
+2. **配置 NVIDIA Runtime**  
+   配置 Docker 使用 NVIDIA 运行时并重启 Docker 服务：
+   ```bash
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+   ```
+
+3. **启动容器**  
+   在项目目录下，使用以下命令启动带有 VOICEVOX Engine 的 Docker 容器：
+   ```bash
+   docker-compose up -d
+   ```
 
 ### 配置
 
