@@ -1,7 +1,6 @@
-import re
 import tempfile
+
 import aiohttp
-import os
 
 from astrbot.api.all import *
 
@@ -49,12 +48,12 @@ class VoicevoxTTSGenerator(Star):
             raise ConnectionError(f"连接失败: {str(e)}")
 
     async def _list_speakers(self):
-        """列出可用的讲话者"""
+        """列出可用的音声"""
         await self.ensure_session()
         try:
             async with self.session.get(f"{self.config['voicevox_url']}/speakers") as resp:
                 if resp.status != 200:
-                    raise ConnectionError(f"无法获取讲话者列表 (状态码: {resp.status})")
+                    raise ConnectionError(f"无法获取音声列表 (状态码: {resp.status})")
                 return await resp.json()
         except aiohttp.ClientError as e:
             raise ConnectionError(f"连接失败: {str(e)}")
