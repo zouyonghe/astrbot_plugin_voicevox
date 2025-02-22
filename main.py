@@ -131,6 +131,7 @@ class VoicevoxTTSGenerator(Star):
         """禁用 VOICEVOX"""
         try:
             self.config["enable_voicevox"] = False  # 设置为禁用
+            logger.error(f"TEST: {self.context.get_config().get('enable_voicevox')}")
             self.context.get_config().save_config()
             yield event.plain_result("✅ VOICEVOX 已禁用！")
         except Exception as e:
