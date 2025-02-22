@@ -1,4 +1,10 @@
 {
+    "enable_voicevox": {
+        "type": "bool",
+        "description": "启用 VOICEVOX 文本转语音",
+        "default": true,
+        "hint": "默认启用，可使用 /voicevox enable 启用，或 /voicevox disable 禁用"
+    },
     "voicevox_url": {
         "type": "string",
         "description": "VOICEVOX Engine API地址",

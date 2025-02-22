@@ -115,6 +115,26 @@ class VoicevoxTTSGenerator(Star):
     def voicevox(self):
         pass
 
+    @voicevox.command("enable")
+    async def enable_voicevox(self, event: AstrMessageEvent):
+        """启用 VOICEVOX"""
+        try:
+            self.config["enable_voicevox"] = True  # 设置为启用
+            yield event.plain_result("✅ VOICEVOX 已启用！")
+        except Exception as e:
+            logger.error(f"启用 VOICEVOX 时出错: {e}")
+            yield event.plain_result("❌ 启用失败，请检查日志！")
+
+    @voicevox.command("disable")
+    async def disable_voicevox(self, event: AstrMessageEvent):
+        """禁用 VOICEVOX"""
+        try:
+            self.config["enable_voicevox"] = False  # 设置为禁用
+            yield event.plain_result("✅ VOICEVOX 已禁用！")
+        except Exception as e:
+            logger.error(f"禁用 VOICEVOX 时出错: {e}")
+            yield event.plain_result("❌ 禁用失败，请检查日志！")
+
     @voicevox.command("gen")
     async def generate_speech(self, event: AstrMessageEvent, text: str):
         """生成语音
@@ -247,6 +267,9 @@ class VoicevoxTTSGenerator(Star):
 
     @on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
+        if not self.config.get("enable_voicevox", True):
+            return 
+        
         if not event.get_sender_id() != event.get_self_id():
             return
 
@@ -283,7 +306,8 @@ class VoicevoxTTSGenerator(Star):
                 temp_audio_path = temp_audio.name
 
             # 将生成的音频文件添加到事件链
-            result.chain.append(Record(file=temp_audio_path))
+            #result.chain.append(Record(file=temp_audio_path))
+            result.chain = [Record(file=temp_audio_path)]
 
             # 异步延迟删除任务
             async def delayed_file_removal(path, delay_seconds=10):
@@ -291,7 +315,6 @@ class VoicevoxTTSGenerator(Star):
                 await asyncio.sleep(delay_seconds)  # 延迟指定时间
                 try:
                     os.remove(path)
-                    logger.info(f"延迟 {delay_seconds} 秒后，删除临时文件: {path}")
                 except Exception as e:
                     logger.error(f"删除临时文件 {path} 失败: {e}")
 
