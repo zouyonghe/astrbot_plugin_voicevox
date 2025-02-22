@@ -1,3 +1,4 @@
+import asyncio
 import re
 import tempfile
 
@@ -286,6 +287,19 @@ class VoicevoxTTSGenerator(Star):
 
             # 将生成的音频文件添加到事件链
             result.chain = [Record(file=temp_audio_path)]
-            # os.remove(temp_audio_path)  # 清理临时文件
+
+            # 异步延迟删除任务
+            async def delayed_file_removal(path, delay_seconds=10):
+                """延迟删除文件"""
+                await asyncio.sleep(delay_seconds)  # 延迟指定时间
+                try:
+                    os.remove(path)
+                    logger.info(f"延迟 {delay_seconds} 秒后，删除临时文件: {path}")
+                except Exception as e:
+                    logger.error(f"删除临时文件 {path} 失败: {e}")
+
+            # 使用 asyncio.create_task 启动后台异步任务
+            asyncio.create_task(delayed_file_removal(temp_audio_path, delay_seconds=5))
+
         except Exception as e:
             logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
