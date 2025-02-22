@@ -147,14 +147,39 @@ class VoicevoxTTSGenerator(Star):
     def style(self):
         pass
 
+    @style.command("list")
+    async def list_styles(self, event: AstrMessageEvent):
+        """列出当前默认音声的所有风格"""
+        try:
+            # 检查是否设置了默认音声
+            voice_name = self.config.get("default_voice")  # 从配置获取默认音声名称
+            if voice_name is None:
+                yield event.plain_result("❌ 请先设置默认音声！使用 /voicevox set_voice <音声索引>")
+                return
+
+            # 获取音声列表并找到默认音声
+            speakers = await self._list_speakers()
+            speaker = next((s for s in speakers if s["name"] == voice_name), None)
+            if not speaker:
+                yield event.plain_result(f"❌ 找不到音声 {voice_name}，请重新设置！")
+                return
+
+            # 列出风格
+            styles_list = "\n".join([f"{i + 1}. 风格名称: {style['name']} (风格ID: {style['id']})"
+                                     for i, style in enumerate(speaker["styles"])])
+            yield event.plain_result(f"音声 {voice_name} 的可用风格:\n{styles_list}")
+        except Exception as e:
+            logger.error(f"获取风格列表失败: {e}")
+            yield event.plain_result("❌ 获取风格列表失败，请检查日志")
+
     @style.command("set")
     async def set_style(self, event: AstrMessageEvent, style_index: int):
         """设置当前音声的默认风格"""
         try:
             # 检查是否设置了默认音声
-            voice_name = self.config.get("default_voice")
+            voice_name = self.config.get("default_voice")  # 从配置获取默认音声名称
             if voice_name is None:
-                yield event.plain_result("❌ 请先设置音声！使用 /speakers voice set <音声索引>")
+                yield event.plain_result("❌ 请先设置音声！使用 /voicevox set_voice <音声索引>")
                 return
 
             # 获取音声及其样式列表
@@ -164,48 +189,17 @@ class VoicevoxTTSGenerator(Star):
                 yield event.plain_result(f"❌ 找不到音声 {voice_name}，请重新设置！")
                 return
 
+            # 检查索引并获取对应风格
             styles = speaker["styles"]
-            index = int(style_index) - 1
+            index = int(style_index) - 1  # 用户输入的索引从 1 开始，调整为从 0 开始
             if index < 0 or index >= len(styles):
-                yield event.plain_result(f"❌ 无效的样式索引，请使用 /speakers style list 查看当前音声的样式")
+                yield event.plain_result("❌ 无效的风格索引，请使用 /voicevox list_styles 查看当前音声的风格")
                 return
 
+            # 设置默认风格
             selected_style = styles[index]["name"]
-            self.config["default_style"] = selected_style  # 保存样式名称
+            self.config["default_style"] = selected_style  # 保存风格名称
             yield event.plain_result(f"✅ 默认风格已设置为: {selected_style}")
-        except Exception as e:
-            logger.error(f"设置风格失败: {e}")
-            yield event.plain_result("❌ 设置风格失败，请检查日志")
-
-    @style.command("set")
-    async def set_style(self, event: AstrMessageEvent, style_index: int):
-        """设置当前音声的默认风格"""
-        try:
-            # 检查是否设置了默认音声
-            voice_index = self.config.get("voice_index")
-            if voice_index is None:
-                yield event.plain_result("❌ 请先设置音声！使用 /speakers voice set <音声索引>")
-                return
-
-            # 获取音声列表并确保索引有效
-            speakers = await self._list_speakers()
-            if voice_index < 0 or voice_index >= len(speakers):
-                yield event.plain_result("❌ 无效的默认音声，请重新设置音声！使用 /speakers voice set <音声索引>")
-                return
-
-            # 获取音声及其风格
-            selected_speaker = speakers[voice_index]
-            styles = selected_speaker["styles"]
-
-            # 检查风格索引有效性
-            index = int(style_index) - 1
-            if index < 0 or index >= len(styles):
-                yield event.plain_result(f"❌ 无效的风格索引，请使用 /speakers style list 查看当前音声的风格")
-                return
-
-            selected_style = styles[index]
-            self.config["style_index"] = selected_style["id"]  # 保存风格ID
-            yield event.plain_result(f"✅ 默认风格已设置为: {selected_style['name']} (ID: {selected_style['id']})")
         except Exception as e:
             logger.error(f"设置风格失败: {e}")
             yield event.plain_result("❌ 设置风格失败，请检查日志")
