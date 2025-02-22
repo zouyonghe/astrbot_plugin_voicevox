@@ -362,3 +362,9 @@ class VoicevoxTTSGenerator(Star):
         async for result in self.disable_voicevox(event):
             yield result
         logger.info("已禁用 Voicevox TTS")
+
+    @command("show")
+    async def show_context_config(self, event: AstrMessageEvent):
+        yield event.plain_result(f"context config: {self.context.get_config()}")
+
+        #yield event.plain_result(f"plugin config: {self.config}")
