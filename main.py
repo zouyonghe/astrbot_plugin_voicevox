@@ -29,27 +29,29 @@ class VoicevoxTTSGenerator(Star):
             )
 
     async def _call_voicevox_api(self, text: str, speaker: int) -> bytes:
-        """直接调用 VOICEVOX 的 synthesis 接口一步生成语音"""
+        """调用 VOICEVOX Engine API，生成语音"""
         await self.ensure_session()
-
+        voicevox_url = self.config["voicevox_url"]
         try:
-            # 构建 synthesis 的请求参数
-            url_synthesis = f"{self.config['voicevox_url']}/synthesis"
-            payload = {
-                "text": text,  # 要合成的文本
-                "speaker": speaker  # 风格 ID（或 speaker ID）
+            # 第一步：调用 audio_query 接口，获取查询参数
+            url_query = f"{voicevox_url}/audio_query"
+            params = {
+                "text": text,  # 提供文本
+                "speaker": speaker  # 提供风格ID
             }
+            async with self.session.post(url_query, params=params) as resp_query:
+                if resp_query.status != 200:
+                    error = await resp_query.text()
+                    raise ConnectionError(f"audio_query 请求失败: ({resp_query.status}) {error}")
+                audio_query = await resp_query.json()  # 获取 audio_query 接口的返回值
 
-            # 发送 POST 请求直接生成语音
-            async with self.session.post(url_synthesis, json=payload) as resp:
-                if resp.status != 200:
-                    error = await resp.text()
-                    raise ConnectionError(f"synthesis 请求失败: ({resp.status}) {error}")
-                return await resp.read()  # 返回合成的二进制音频数据
-
-        except aiohttp.ClientError as e:
-            raise ConnectionError(f"与 VOICEVOX API 通信失败: {str(e)}")
-
+            # 第二步：调用 synthesis 接口，生成音频
+            url_synthesis = f"{voicevox_url}/synthesis"
+            async with self.session.post(url_synthesis, json=audio_query) as resp_synthesis:
+                if resp_synthesis.status != 200:
+                    error = await resp_synthesis.text()
+                    raise ConnectionError(f"synthesis 请求失败: ({resp_synthesis.status}) {error}")
+                return await resp_synthesis.read()  # 返回生成的音频数据（二进制）
 
         except aiohttp.ClientError as e:
             raise ConnectionError(f"与 VOICEVOX API 通信失败: {str(e)}")
@@ -60,7 +62,7 @@ class VoicevoxTTSGenerator(Star):
         try:
             async with self.session.get(f"{self.config['voicevox_url']}/speakers") as resp:
                 if resp.status != 200:
-                    raise ConnectionError(f"无法获取音声列表 (状态码: {resp.status})")
+                    raise ConnectionError(f"无法获取音声风格信息 (状态码: {resp.status})")
                 return await resp.json()
         except aiohttp.ClientError as e:
             raise ConnectionError(f"连接失败: {str(e)}")
@@ -103,7 +105,7 @@ class VoicevoxTTSGenerator(Star):
 
             speaker_id = style_obj["id"]  # 获取风格对应的 speaker ID
 
-            # 调用 API 一步生成语音
+            # 调用 API 生成语音
             audio_data = await self._call_voicevox_api(text, speaker_id)
 
             # 保存生成的音频
