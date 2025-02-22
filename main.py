@@ -7,6 +7,7 @@ import pycld2 as cld2
 from astrbot.api.all import *
 from astrbot.api.event.filter import *
 
+PLUGIN_CONFIG_PATH = "data/config/astrbot_plugin_voicevox_config.json"
 
 @register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.0")
 class VoicevoxTTSGenerator(Star):
@@ -30,6 +31,23 @@ class VoicevoxTTSGenerator(Star):
             self.session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(self.config.get("session_timeout_time", 120))
             )
+
+    def save_plugin_config(self, file_path=PLUGIN_CONFIG_PATH):
+        """
+        保存插件配置到文件
+        Args:
+            file_path: 保存的配置文件路径
+        """
+        if not file_path:
+            logger.error("插件配置文件路径不存在，保存失败。")
+            return
+        try:
+            with open("w", encoding="utf-8") as config_file:
+                json.dump(self.config, config_file, indent=2, ensure_ascii=False)
+            logger.info(f"插件配置已保存到文件: {file_path}")
+        except Exception as e:
+            logger.error(f"保存插件配置失败: {e}")
+
 
     def _is_japanese(self, text):
         try:
@@ -120,7 +138,7 @@ class VoicevoxTTSGenerator(Star):
         """启用 VOICEVOX"""
         try:
             self.config["enable_voicevox"] = True  # 设置为启用
-            self.context.get_config().save_config()
+            self.save_plugin_config()
             yield event.plain_result("✅ VOICEVOX 已启用！")
         except Exception as e:
             logger.error(f"启用 VOICEVOX 时出错: {e}")
@@ -131,8 +149,7 @@ class VoicevoxTTSGenerator(Star):
         """禁用 VOICEVOX"""
         try:
             self.config["enable_voicevox"] = False  # 设置为禁用
-            logger.error(f"TEST: {self.context.get_config().get('enable_voicevox')}")
-            self.context.get_config().save_config()
+            self.save_plugin_config()
             yield event.plain_result("✅ VOICEVOX 已禁用！")
         except Exception as e:
             logger.error(f"禁用 VOICEVOX 时出错: {e}")
