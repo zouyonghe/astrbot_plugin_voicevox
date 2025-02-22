@@ -28,24 +28,30 @@ class VoicevoxTTSGenerator(Star):
                 timeout=aiohttp.ClientTimeout(self.config.get("session_timeout_time", 120))
             )
 
-    async def _call_voicevox_api(self, text: str, speaker: int) -> bytes:
-        """调用VOICEVOX Engine API"""
-        payload = {"text": text, "speaker": speaker}
+    async def _call_voicevox_api(self, text: str, voice: str, style: str) -> bytes:
+        """调用 VOICEVOX Engine API，生成语音"""
+        # 构建请求 payload，包含文本和音声信息（使用名称和风格）
+        payload = {"text": text, "speaker": voice, "style": style}
         await self.ensure_session()
         try:
-            async with self.session.post(f"{self.config['voicevox_url']}/audio_query", json=payload) as resp:
+            # 调用 audio_query 接口，获取查询参数
+            url_query = f"{self.config['voicevox_url']}/audio_query"
+            async with self.session.post(url_query, json=payload) as resp:
                 if resp.status != 200:
                     error = await resp.text()
-                    raise ConnectionError(f"API错误 ({resp.status}): {error}")
+                    raise ConnectionError(f"audio_query 请求失败: ({resp.status}) {error}")
                 audio_query = await resp.json()
 
-            async with self.session.post(f"{self.config['voicevox_url']}/synthesis", json=audio_query) as audio_resp:
+            # 调用 synthesis 接口，进行音频合成
+            url_synthesis = f"{self.config['voicevox_url']}/synthesis"
+            async with self.session.post(url_synthesis, json=audio_query) as audio_resp:
                 if audio_resp.status != 200:
                     error = await audio_resp.text()
-                    raise ConnectionError(f"音频合成错误 ({audio_resp.status}): {error}")
-                return await audio_resp.read()
+                    raise ConnectionError(f"synthesis 请求失败: ({audio_resp.status}) {error}")
+                return await audio_resp.read()  # 返回生成的二进制音频数据
+
         except aiohttp.ClientError as e:
-            raise ConnectionError(f"连接失败: {str(e)}")
+            raise ConnectionError(f"与 VOICEVOX API 通信失败: {str(e)}")
 
     async def _list_speakers(self):
         """列出可用的音声"""
@@ -75,27 +81,26 @@ class VoicevoxTTSGenerator(Star):
                 return
 
             # 检查是否已设置默认音声和样式
-            voice_name = self.config.get("default_voice")  # 配置中保存的音声名称
-            style_name = self.config.get("default_style")  # 配置中保存的样式名称
-            if voice_name is None or style_name is None:
+            voice = self.config.get("default_voice")  # 配置中保存的音声名称
+            style = self.config.get("default_style")  # 配置中保存的样式名称
+            if not voice or not style:
                 yield event.plain_result("❌ 生成语音失败：请先设置音声和样式！")
                 return
 
             # 获取音声和样式的 ID
             speakers = await self._list_speakers()
-            speaker = next((s for s in speakers if s["name"] == voice_name), None)
+            speaker = next((s for s in speakers if s["name"] == voice), None)
             if not speaker:
-                yield event.plain_result(f"❌ 找不到音声 {voice_name}，请检查设置！")
+                yield event.plain_result(f"❌ 找不到音声 {voice}，请检查设置！")
                 return
 
-            style = next((s for s in speaker["styles"] if s["name"] == style_name), None)
+            style = next((s for s in speaker["styles"] if s["name"] == style), None)
             if not style:
-                yield event.plain_result(f"❌ 音声 {voice_name} 下找不到样式 {style_name}，请检查设置！")
+                yield event.plain_result(f"❌ 音声 {voice} 下找不到样式 {style}，请检查设置！")
                 return
 
             # 调用 API 生成语音
-            speaker_id = style["id"]
-            audio_data = await self._call_voicevox_api(text, speaker_id)
+            audio_data = await self._call_voicevox_api(text, voice, style)
 
             # 保存生成的音频
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
@@ -165,7 +170,7 @@ class VoicevoxTTSGenerator(Star):
                 return
 
             # 列出风格
-            styles_list = "\n".join([f"{i + 1}. 风格名称: {style['name']} (风格ID: {style['id']})"
+            styles_list = "\n".join([f"{i + 1}. {style['name']} (风格ID: {style['id']})"
                                      for i, style in enumerate(speaker["styles"])])
             yield event.plain_result(f"音声 {voice_name} 的可用风格:\n{styles_list}")
         except Exception as e:
