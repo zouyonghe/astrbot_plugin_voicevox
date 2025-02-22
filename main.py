@@ -250,7 +250,7 @@ class VoicevoxTTSGenerator(Star):
         plain_text = ""
 
         # 遍历组件
-        for comp in event.get_messages():
+        for comp in event.get_result().chain:
             if not isinstance(comp, Plain):  # 检测是否包含文字外其他内容
                 return
             else:
