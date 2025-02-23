@@ -132,6 +132,49 @@ class VoicevoxTTSGenerator(Star):
     def voicevox(self):
         pass
 
+    @voicevox.command("help")
+    async def voicevox_help(self, event: AstrMessageEvent):
+        """显示Voicevox插件所有可用指令及其描述"""
+        help_msg = [
+            "🎤 **VOICEVOX 插件帮助指南**",
+            "该插件提供了一组指令用于管理和使用 VOICEVOX Engine 进行日语文本转语音。",
+            "",
+            "📜 **主要功能指令列表**:",
+            "- `/voicevox enable`：启用 VOICEVOX 功能。",
+            "- `/voicevox disable`：禁用 VOICEVOX 功能。",
+            "- `/voicevox gen [文本]`：将输入文本转换为语音，仅支持日语。",
+            "- `/voicevox conf`：查看当前音声和风格配置。",
+            "",
+            "🔧 **音声管理指令**:",
+            "- `/voicevox voice list`：列出所有可用的音声。",
+            "- `/voicevox voice set [音声索引]`：根据索引设置默认音声。",
+            "- `/voicevox style list`：列出当前默认音声的所有风格。",
+            "- `/voicevox style set [风格索引]`：根据索引设置默认风格。",
+            "",
+            "ℹ️ **注意事项**:",
+            "- 默认需设置音声和风格后才能生成语音。",
+            "- 输入的文本必须为日语，否则无法生成音频。",
+        ]
+        yield event.plain_result("\n".join(help_msg))
+
+    @voicevox.command("conf")
+    async def show_config(self, event: AstrMessageEvent):
+        """查看当前音声和风格配置"""
+        try:
+            default_voice = self.config.get("default_voice")
+            default_style = self.config.get("default_style")
+
+            if not default_voice or not default_style:
+                yield event.plain_result("❌ 当前尚未设置默认音声或风格，请先进行配置！")
+                return
+
+            yield event.plain_result(
+                f"🎤 当前配置:\n- 音声: {default_voice}\n- 风格: {default_style}"
+            )
+        except Exception as e:
+            logger.error(f"查看配置失败: {e}")
+            yield event.plain_result("❌ 无法查看配置，请检查日志！")
+
     @voicevox.command("enable")
     async def enable_voicevox(self, event: AstrMessageEvent):
         """启用 VOICEVOX"""
