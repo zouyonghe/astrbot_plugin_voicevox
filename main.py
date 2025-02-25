@@ -330,11 +330,8 @@ class VoicevoxTTSGenerator(Star):
     @on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
         if not self.config.get("enable_voicevox", True):
-            return 
-        
-        if not event.get_sender_id() != event.get_self_id():
-            logger.error(f"sender_id: {event.get_sender_id()}, self_id: {event.get_self_id()}")
             return
+        logger.error(f"sender_id: {event.get_sender_id()}, self_id: {event.get_self_id()}")
 
         result = event.get_result()
 
