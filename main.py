@@ -9,7 +9,7 @@ from astrbot.api.event.filter import *
 
 PLUGIN_CONFIG_PATH = "data/config/astrbot_plugin_voicevox_config.json"
 
-@register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.0")
+@register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.1")
 class VoicevoxTTSGenerator(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -63,6 +63,10 @@ class VoicevoxTTSGenerator(Star):
             # 处理检测过程中可能出现的异常
             print(f"Language detection error: {e}")
             return False
+
+    def _validate_length(self, string: str):
+        return len(string) <= self.config.get("max_length", 200)
+
 
     async def _call_voicevox_api(self, text: str, speaker: int) -> bytes:
         """调用 VOICEVOX Engine API，生成语音"""
@@ -214,6 +218,10 @@ class VoicevoxTTSGenerator(Star):
                 yield event.plain_result("⚠️ VOICEVOX 只支持日语文本转语音，请提供日语文本。")
                 return
 
+            if not self._validate_length(text):
+                yield event.plain_result("⚠️ 输入文本超过最大文本长度。")
+                return
+
             # 获取 speaker ID
             speaker_id = await self._get_speaker_id()
 
@@ -350,6 +358,9 @@ class VoicevoxTTSGenerator(Star):
 
         # 验证是否为日语文本
         if not self._is_japanese(plain_text):
+            return
+
+        if not self._validate_length(plain_text):
             return
 
         try:

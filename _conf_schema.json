@@ -22,5 +22,11 @@
         "description": "当前风格名",
         "default": "",
         "hint": "使用 /voicevox style list 获得所有可用风格"
+    },
+    "max_length": {
+        "type": "int",
+        "description": "文本最大长度",
+        "default": 200,
+        "hint": "防止输入文本过长导致显存占满"
     }
 }
