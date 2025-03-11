@@ -2,12 +2,13 @@ import asyncio
 import tempfile
 
 import aiohttp
-import pycld2 as cld2
+import langid
 
 from astrbot.api.all import *
 from astrbot.api.event.filter import *
 
-@register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.2")
+
+@register("VoicevoxTTS", "Text-to-Speech", "基于VOICEVOX Engine的文本转语音插件", "1.0.3")
 class VoicevoxTTSGenerator(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -30,21 +31,17 @@ class VoicevoxTTSGenerator(Star):
                 timeout=aiohttp.ClientTimeout(self.config.get("session_timeout_time", 120))
             )
 
-    def _is_japanese(self, text):
+    def _is_japanese(self, text: str) -> bool:
         try:
-            # 使用 pycld2 检测语言
-            is_reliable, _, detected_languages = cld2.detect(text)
-            if is_reliable:
-                # 遍历检测到的语言信息
-                for lang in detected_languages:
-                    language_code = lang[1]
-                    if language_code == 'ja':
-                        return True
-            return False
+            if not text or not isinstance(text, str):
+                return False
+            # 检测语言
+            language, confidence = langid.classify(text)
+            return language == 'ja'
         except Exception as e:
-            # 处理检测过程中可能出现的异常
             print(f"Language detection error: {e}")
             return False
+
 
     def _validate_length(self, string: str):
         return len(string) <= self.config.get("max_length", 200)

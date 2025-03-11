@@ -1,1 +1,1 @@
-pycld2
+langid
