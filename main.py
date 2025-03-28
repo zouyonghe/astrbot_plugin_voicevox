@@ -368,7 +368,7 @@ class VoicevoxTTSGenerator(Star):
                     logger.error(f"删除临时文件 {path} 失败: {e}")
 
             # 使用 asyncio.create_task 启动后台异步任务
-            asyncio.create_task(delayed_file_removal(temp_audio_path, delay_seconds=5))
+            asyncio.create_task(delayed_file_removal(temp_audio_path, delay_seconds=10))
 
         except Exception as e:
             logger.error(f"转换失败，输入文本: {plain_text}, 错误信息: {e}")
